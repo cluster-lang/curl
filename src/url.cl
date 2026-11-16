@@ -1,8 +1,8 @@
 // ==============================================================================
 // Module:      URL Parsing Engine (url.cl)
 // Project:     Cluster cURL (HTTP/HTTPS Transfer Client)
-// Author:      Zaid Alamgir (ZK Company)
-// License:     MIT License
+// Author:      mohammadzaid/(cluster) <zkalamgir@proton.me>
+// License:     Cluster Community // License:     MIT License Fair-Source License (CCFL-1.0)
 // Description: RFC 3986 Uniform Resource Identifier (URI) parser and decomposition.
 // ==============================================================================
 

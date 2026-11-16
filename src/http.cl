@@ -1,8 +1,8 @@
 // ==============================================================================
 // Module:      HTTP Protocol Engine (http.cl)
 // Project:     Cluster cURL (HTTP/HTTPS Transfer Client)
-// Author:      Zaid Alamgir (ZK Company)
-// License:     MIT License
+// Author:      mohammadzaid/(cluster) <zkalamgir@proton.me>
+// License:     Cluster Community // License:     MIT License Fair-Source License (CCFL-1.0)
 // Description: RFC 7230 HTTP/1.1 wire protocol serializer & RFC 4648 Base64 auth.
 // ==============================================================================
 

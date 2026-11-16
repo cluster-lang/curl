@@ -1,8 +1,8 @@
 // ==============================================================================
 // Module:      HTTP Response Parser (response.cl)
 // Project:     Cluster cURL (HTTP/HTTPS Transfer Client)
-// Author:      Zaid Alamgir (ZK Company)
-// License:     MIT License
+// Author:      mohammadzaid/(cluster) <zkalamgir@proton.me>
+// License:     Cluster Community // License:     MIT License Fair-Source License (CCFL-1.0)
 // Description: HTTP status line, headers extraction, and chunked transfer decoding.
 // ==============================================================================
 

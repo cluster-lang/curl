@@ -1,9 +1,14 @@
 # Cluster cURL: High-Performance Network Transfer Client
 
-**Author:** Zaid Alamgir (ZK Company)  
-**License:** MIT License  
+> [!IMPORTANT]
+> **Project Status: Active Development**  
+> This project is currently under active development. Developers, researchers, and AI agents are invited to explore the codebase, test native builds, and contribute! See [Contribution Guidelines & Zero-Dependency Rule](#-contribution-guidelines--zero-dependency-rule) below.
 
-A high-performance, lightweight command-line transfer tool and HTTP/HTTPS client implemented in Cluster with zero external runtime dependencies. Compiled directly to a standalone native binary via the Cluster LLVM `-O3` compiler pipeline.
+**Author:** mohammadzaid/(cluster) <zkalamgir@proton.me>  
+**Organization:** [cluster-lang](https://github.com/cluster-lang)  
+**License:** Cluster Community & Fair-Source License (CCFL v1.0 / MIT-Conditional)  
+
+A high-performance, lightweight command-line transfer tool and HTTP/HTTPS client implemented in pure Cluster with zero external runtime dependencies. Compiled directly to a standalone native binary via the Cluster LLVM `-O3` compiler pipeline.
 
 ---
 
@@ -20,22 +25,12 @@ Benchmarked on Linux x86-64 across 50 iterations against official `/usr/bin/curl
 
 ---
 
-## 📊 Codebase Size & Expressive Density Comparison
-
-| Metric | Official cURL (C) | Cluster cURL (`cluster-curl`) | Ratio |
-| :--- | :--- | :--- | :--- |
-| **Source Lines** | **199,095 lines** of C | **740 lines** of Cluster | **~269x density** |
-| **Source Files** | 200+ `.c` and `.h` files | 5 clean `.cl` files | Zero ceremonial bloat |
-| **Language** | C (macros, pointers) | Pure Cluster (`.cl`) | Memory-safe by default |
-
----
-
 ## 🛠️ Architecture & Modules
 
 The transfer engine is organized into 5 pure Cluster modules under `src/`:
 
 ```
-cluster-curl/
+curl/
 ├── bin/
 │   └── cluster-curl    # Standalone 139 KB native executable (LLVM -O3)
 ├── src/
@@ -69,14 +64,33 @@ cluster-curl/
 
 ---
 
+## 🤝 Contribution Guidelines & Zero-Dependency Rule
+
+The fundamental mission of **Cluster** is to eliminate external dependency bloat and provide a self-contained, high-performance ecosystem.
+
+### Core Rules for Contributions:
+1. **100% Pure Cluster (`.cl`):** All new features and protocols must be written purely in Cluster.
+2. **Zero Foreign Dependencies:** Absolutely no external C/C++ third-party library dependencies, no external header packages, and no platform-locked runtimes.
+3. **Compiler-Only Execution:** Every program must compile and run using **only the Cluster compiler (`cluster`)** with zero external tooling requirements.
+4. **Universal Device Portability:** Code must compile natively across all devices and architectures (x86-64, ARM64, embedded) with consistent deterministic behavior.
+
+---
+
 ## 🧪 Automated Test Suite
 
 Run the full 6-phase automated test suite:
 ```bash
 cl run tests/test_curl.cl
 ```
-```text
-=================================================================
- ALL 6 PHASES OF CLUSTER-CURL VERIFIED WITH 100% SUCCESS
-=================================================================
-```
+
+---
+
+## 📜 License & Commercial Terms
+
+This software is released under the **Cluster Community & Fair-Source License (CCFL v1.0 / MIT-Conditional)**:
+
+- **100% Free for Independent & Research Use:**
+  - Individual developers, students, educators, academic researchers, non-profits, and scientific research groups have full rights to inspect, run, modify, compile, and contribute without any license fees.
+- **Commercial Enterprise License Required:**
+  - Commercial companies, startups, and for-profit businesses using Cluster cURL in commercial products, SaaS services, proprietary closed-source systems, or revenue-generating operations are required to purchase a commercial license.
+  - Contact: **`zkalamgir@proton.me`** (`mohammadzaid/(cluster)`).
