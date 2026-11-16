@@ -1,7 +1,10 @@
-// ============================================================================
-//  cluster-curl: URL Parser Engine (src/url.cl)
-//  100% Pure Cluster RFC 3986 URL Parser & Decomposition
-// ============================================================================
+// ==============================================================================
+// Module:      URL Parsing Engine (url.cl)
+// Project:     Cluster cURL (HTTP/HTTPS Transfer Client)
+// Author:      Zaid Alamgir (ZK Company)
+// License:     MIT License
+// Description: RFC 3986 Uniform Resource Identifier (URI) parser and decomposition.
+// ==============================================================================
 
 model ParsedUrl:
     raw: string
@@ -12,6 +15,13 @@ model ParsedUrl:
     query: string
     userinfo: string
 
+// ------------------------------------------------------------------------------
+// Function: parse_url
+// Syntax:   fn parse_url(raw_url: string) -> ParsedUrl
+// Purpose:  Decomposes a raw URL string into scheme, host, port, path, query, and credentials.
+// Params:   raw_url - Absolute or relative URL string (e.g. "https://user:pass@example.com:8443/api?q=1")
+// Returns:  Structured ParsedUrl model
+// ------------------------------------------------------------------------------
 fn parse_url(raw_url: string) -> ParsedUrl:
     scheme := "http"
     host := ""
@@ -30,7 +40,6 @@ fn parse_url(raw_url: string) -> ParsedUrl:
         port = 80
         cur = substring(cur, 7, len(cur) - 7)
 
-    // Check for path starting with /
     slash_pos := -1
     i := 0
     while i < len(cur):
@@ -44,7 +53,6 @@ fn parse_url(raw_url: string) -> ParsedUrl:
         host_part = substring(cur, 0, slash_pos)
         path = substring(cur, slash_pos, len(cur) - slash_pos)
 
-    // Check for query in path
     q_pos := -1
     i = 0
     while i < len(path):
@@ -60,7 +68,6 @@ fn parse_url(raw_url: string) -> ParsedUrl:
     if len(path) == 0:
         path = "/"
 
-    // Check for userinfo (user:pass@host)
     at_pos := -1
     i = 0
     while i < len(host_part):
@@ -73,7 +80,6 @@ fn parse_url(raw_url: string) -> ParsedUrl:
         userinfo = substring(host_part, 0, at_pos)
         host_part = substring(host_part, at_pos + 1, len(host_part) - at_pos - 1)
 
-    // Check for port in host_part (:port)
     colon_pos := -1
     i = 0
     while i < len(host_part):

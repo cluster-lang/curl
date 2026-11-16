@@ -1,7 +1,10 @@
-// ============================================================================
-//  cluster-curl: HTTP Request & Protocol Engine (src/http.cl)
-//  RFC 7230 HTTP/1.1 Wire Protocol Serializer & Base64 Authentication
-// ============================================================================
+// ==============================================================================
+// Module:      HTTP Protocol Engine (http.cl)
+// Project:     Cluster cURL (HTTP/HTTPS Transfer Client)
+// Author:      Zaid Alamgir (ZK Company)
+// License:     MIT License
+// Description: RFC 7230 HTTP/1.1 wire protocol serializer & RFC 4648 Base64 auth.
+// ==============================================================================
 
 model HttpHeader:
     key: string
@@ -13,6 +16,13 @@ model HttpRequest:
     headers: vector[HttpHeader]
     body: string
 
+// ------------------------------------------------------------------------------
+// Function: base64_encode
+// Syntax:   fn base64_encode(s: string) -> string
+// Purpose:  Encodes raw string data into standard RFC 4648 Base64 format with '=' padding.
+// Params:   s - Input text or binary string
+// Returns:  Base64 encoded string
+// ------------------------------------------------------------------------------
 fn base64_encode(s: string) -> string:
     chars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
     out := ""
@@ -51,10 +61,16 @@ fn base64_encode(s: string) -> string:
         i = i + 3
     return out
 
+// ------------------------------------------------------------------------------
+// Function: serialize_http_request
+// Syntax:   fn serialize_http_request(req: HttpRequest) -> string
+// Purpose:  Serializes an HttpRequest into RFC 7230 compliant HTTP/1.1 wire bytes.
+// Params:   req - Structured HttpRequest model
+// Returns:  Raw HTTP request wire string with CRLF line terminators
+// ------------------------------------------------------------------------------
 fn serialize_http_request(req: HttpRequest) -> string:
     c_crlf := chr(13) + chr(10)
 
-    // Request path with query string
     target := req.url.path
     if len(req.url.query) > 0:
         target = target + "?" + req.url.query

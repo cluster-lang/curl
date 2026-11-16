@@ -1,8 +1,9 @@
-# cluster-curl: 100% Pure Cluster HTTP/HTTPS Transfer Engine
+# Cluster cURL: High-Performance Network Transfer Client
 
-A high-performance, lightweight command-line transfer tool and HTTP client implemented in **100% pure Cluster language (`.cl`)** with zero runtime overhead.
+**Author:** Zaid Alamgir (ZK Company)  
+**License:** MIT License  
 
-Compiled to a standalone native binary via the Cluster LLVM `-O3` compiler pipeline.
+A high-performance, lightweight command-line transfer tool and HTTP/HTTPS client implemented in Cluster with zero external runtime dependencies. Compiled directly to a standalone native binary via the Cluster LLVM `-O3` compiler pipeline.
 
 ---
 

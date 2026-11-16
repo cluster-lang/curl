@@ -1,13 +1,22 @@
-// ============================================================================
-//  cluster-curl: Main CLI Driver (src/main.cl)
-//  100% Pure Cluster Implementation of the cURL Command-Line Tool
-// ============================================================================
+// ==============================================================================
+// Module:      Main CLI Command-Line Driver (main.cl)
+// Project:     Cluster cURL (High-Performance Network Transfer Client)
+// Author:      Zaid Alamgir (ZK Company)
+// License:     MIT License
+// Description: Command-line interface parser, flag evaluator, write-out formatter,
+//              and execution pipeline for Cluster cURL.
+// ==============================================================================
 
 import "src/url.cl"
 import "src/http.cl"
 import "src/response.cl"
 import "src/client.cl"
 
+// ------------------------------------------------------------------------------
+// Function: split_lines
+// Syntax:   fn split_lines(text: string) -> vector[string]
+// Purpose:  Splits a multiline string into individual lines delimited by LF (with CR stripped).
+// ------------------------------------------------------------------------------
 fn split_lines(text: string) -> vector[string]:
     lines: vector[string] = []
     cur := ""
@@ -27,9 +36,14 @@ fn split_lines(text: string) -> vector[string]:
 
     return lines
 
+// ------------------------------------------------------------------------------
+// Function: print_help
+// Syntax:   fn print_help() -> void
+// Purpose:  Displays usage syntax, available command-line switches, and descriptions.
+// ------------------------------------------------------------------------------
 fn print_help():
     println("Usage: cluster-curl [options...] <url>")
-    println("100% Pure Cluster Implementation of cURL (LLVM -O3)\n")
+    println("Cluster High-Performance cURL Client (LLVM -O3)\n")
     println("Options:")
     println(" -d, --data <data>          HTTP POST data")
     println(" -H, --header <header/@file> Pass custom header(s) to server")
@@ -45,6 +59,12 @@ fn print_help():
     println(" -w, --write-out <format>   Use output FORMAT after completion")
     println(" -X, --request <command>    Specify request command to use")
 
+// ------------------------------------------------------------------------------
+// Function: format_write_out
+// Syntax:   fn format_write_out(fmt: string, res: HttpResponse) -> string
+// Purpose:  Interpolates format variables (%{http_code}, %{content_type}, etc.)
+//           and escape sequences into custom output summary strings.
+// ------------------------------------------------------------------------------
 fn format_write_out(fmt: string, res: HttpResponse) -> string:
     out := ""
     i := 0
@@ -81,6 +101,12 @@ fn format_write_out(fmt: string, res: HttpResponse) -> string:
             i = i + 1
     return out
 
+// ------------------------------------------------------------------------------
+// Function: main
+// Syntax:   fn main() -> void
+// Purpose:  CLI entrypoint. Parses command line switches, executes HTTP transactions,
+//           and prints formatted response headers, payload, and write-out metrics.
+// ------------------------------------------------------------------------------
 fn main():
     args: vector[string] = sys_args
     if len(args) < 1:

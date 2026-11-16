@@ -1,6 +1,11 @@
-// ============================================================================
-//  cluster-curl: Automated Test Suite (tests/test_curl.cl)
-// ============================================================================
+// ==============================================================================
+// Module:      Automated Test Suite (tests/test_curl.cl)
+// Project:     Cluster cURL (High-Performance Network Transfer Client)
+// Author:      Zaid Alamgir (ZK Company)
+// License:     MIT License
+// Description: Multi-phase verification suite validating URL parsing, HTTP request
+//              serialization, response decoding, headers map, Base64 auth, and redirects.
+// ==============================================================================
 
 import "src/url.cl"
 import "src/http.cl"

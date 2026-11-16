@@ -1,7 +1,10 @@
-// ============================================================================
-//  cluster-curl: HTTP Response Parser Engine (src/response.cl)
-//  RFC 7230 HTTP Response Status, Headers, and Chunked Body Decoding
-// ============================================================================
+// ==============================================================================
+// Module:      HTTP Response Parser (response.cl)
+// Project:     Cluster cURL (HTTP/HTTPS Transfer Client)
+// Author:      Zaid Alamgir (ZK Company)
+// License:     MIT License
+// Description: HTTP status line, headers extraction, and chunked transfer decoding.
+// ==============================================================================
 
 model HttpResponse:
     proto: string
@@ -11,6 +14,14 @@ model HttpResponse:
     headers_raw: string
     body: string
 
+// ------------------------------------------------------------------------------
+// Function: get_response_header
+// Syntax:   fn get_response_header(res: HttpResponse, search_key: string) -> string
+// Purpose:  Performs case-insensitive header lookup on the response headers.
+// Params:   res        - Structured HttpResponse
+//           search_key - Header name to look up (e.g. "content-type", "location")
+// Returns:  Header value string or empty string if not found
+// ------------------------------------------------------------------------------
 fn get_response_header(res: HttpResponse, search_key: string) -> string:
     target := ""
     i := 0
@@ -42,6 +53,13 @@ fn get_response_header(res: HttpResponse, search_key: string) -> string:
 
     return ""
 
+// ------------------------------------------------------------------------------
+// Function: parse_hex_chunk_size
+// Syntax:   fn parse_hex_chunk_size(s: string) -> int
+// Purpose:  Parses hexadecimal chunk size prefix in HTTP chunked transfer streams.
+// Params:   s - Chunk header line string
+// Returns:  Integer size in bytes
+// ------------------------------------------------------------------------------
 fn parse_hex_chunk_size(s: string) -> int:
     val := 0
     i := 0
@@ -56,7 +74,6 @@ fn parse_hex_chunk_size(s: string) -> int:
         elif b >= 65 and b <= 70:
             nibble = b - 55
         else:
-            // Stop at chunk extensions (e.g. ';') or carriage return
             i = slen
 
         if nibble >= 0:
@@ -64,13 +81,19 @@ fn parse_hex_chunk_size(s: string) -> int:
         i = i + 1
     return val
 
+// ------------------------------------------------------------------------------
+// Function: decode_chunked_body
+// Syntax:   fn decode_chunked_body(raw_body: string) -> string
+// Purpose:  Decodes RFC 7230 chunked transfer-encoded stream into unchunked body bytes.
+// Params:   raw_body - Raw chunked HTTP response payload
+// Returns:  Decoded unified body string
+// ------------------------------------------------------------------------------
 fn decode_chunked_body(raw_body: string) -> string:
     out := ""
     blen := len(raw_body)
     pos := 0
 
     while pos < blen:
-        // Find CRLF after chunk size
         crlf_pos := -1
         i := pos
         while i < blen - 1:
@@ -89,7 +112,6 @@ fn decode_chunked_body(raw_body: string) -> string:
         chunk_sz := parse_hex_chunk_size(size_line)
 
         if chunk_sz == 0:
-            // End of chunked stream
             return out
 
         data_start := crlf_pos + 2
@@ -99,7 +121,6 @@ fn decode_chunked_body(raw_body: string) -> string:
         if data_start + chunk_sz <= blen:
             out = out + substring(raw_body, data_start, chunk_sz)
             pos = data_start + chunk_sz
-            // Skip trailing CRLF
             if pos < blen and byte_at(raw_body, pos) == 13:
                 pos = pos + 1
             if pos < blen and byte_at(raw_body, pos) == 10:
@@ -109,12 +130,18 @@ fn decode_chunked_body(raw_body: string) -> string:
 
     return out
 
+// ------------------------------------------------------------------------------
+// Function: parse_http_response
+// Syntax:   fn parse_http_response(raw: string) -> HttpResponse
+// Purpose:  Parses raw wire HTTP response bytes into status, headers, and body.
+// Params:   raw - Complete HTTP response received from server
+// Returns:  Structured HttpResponse model
+// ------------------------------------------------------------------------------
 fn parse_http_response(raw: string) -> HttpResponse:
     rlen := len(raw)
     hdr_end := -1
     sep_len := 4
 
-    // Look for \r\n\r\n or \n\n
     i := 0
     while i < rlen - 3:
         if byte_at(raw, i) == 13 and byte_at(raw, i + 1) == 10 and byte_at(raw, i + 2) == 13 and byte_at(raw, i + 3) == 10:
@@ -136,7 +163,6 @@ fn parse_http_response(raw: string) -> HttpResponse:
         if body_start < rlen:
             body_str = substring(raw, body_start, rlen - body_start)
 
-    // Split headers into lines
     lines: vector[string] = []
     cur := ""
     i = 0
@@ -158,7 +184,6 @@ fn parse_http_response(raw: string) -> HttpResponse:
 
     if len(lines) > 0:
         status_line := lines[0]
-        // Parse "HTTP/1.1 200 OK"
         s1 := -1
         s2 := -1
         j := 0
@@ -181,7 +206,6 @@ fn parse_http_response(raw: string) -> HttpResponse:
                 status_code = to_int(code_str)
                 status_text = ""
 
-        // Parse header lines
         line_idx := 1
         while line_idx < len(lines):
             line := lines[line_idx]
@@ -196,7 +220,6 @@ fn parse_http_response(raw: string) -> HttpResponse:
             if colon_pos > 0:
                 h_key := substring(line, 0, colon_pos)
                 h_val := substring(line, colon_pos + 1, len(line) - colon_pos - 1)
-                // Strip leading space
                 if len(h_val) > 0 and byte_at(h_val, 0) == 32:
                     h_val = substring(h_val, 1, len(h_val) - 1)
                 headers.push(HttpHeader(h_key, h_val))
@@ -204,7 +227,6 @@ fn parse_http_response(raw: string) -> HttpResponse:
 
     res := HttpResponse(proto, status_code, status_text, headers, headers_str, body_str)
 
-    // Check if chunked
     te := get_response_header(res, "transfer-encoding")
     if te == "chunked":
         res.body = decode_chunked_body(body_str)
