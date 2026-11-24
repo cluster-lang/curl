@@ -1,0 +1,12 @@
+[package]
+name = "cluster-curl"
+version = "1.0.0"
+authors = ["zk-mohammad <ZaidKhan-alamgir@proton.me>"]
+edition = "2026"
+license = "CCFL-2.0"
+description = "Pure native RFC-compliant HTTP/HTTPS network transfer client matching curl CLI conventions."
+
+[build]
+entry = "src/main.cl"
+optimization = "O3"
+target = "native"

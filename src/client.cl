@@ -1,8 +1,8 @@
 // ==============================================================================
 // Module:      Transfer Engine (client.cl)
 // Project:     Cluster cURL (High-Performance Network Transfer Client)
-// Author:      mohammadzaid/(cluster) <zkalamgir@proton.me>
-// License:     Cluster Community // License:     MIT License Fair-Source License (CCFL-1.0)
+// Author:      zk-mohammad <ZaidKhan-alamgir@proton.me>
+// License:     Cluster Community & Fair-Source License (CCFL v2.0)
 // Description: HTTP/HTTPS connection management, streaming socket I/O, TLS tunnel execution,
 //              and automatic recursive redirect following.
 // ==============================================================================
