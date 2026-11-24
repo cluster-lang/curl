@@ -4,7 +4,8 @@
 // Author:      zk-mohammad <ZaidKhan-alamgir@proton.me>
 // License:     Cluster Community & Fair-Source License (CCFL v2.0)
 // Description: Multi-phase verification suite validating URL parsing, HTTP request
-//              serialization, response decoding, headers map, Base64 auth, and redirects.
+//              serialization, response decoding, headers map, Base64 auth, redirects,
+//              cookies, bearer auth, write-out formatting, and pure-Cluster socket I/O.
 // ==============================================================================
 
 import "src/url.cl"
@@ -39,6 +40,20 @@ fn assert_true(cond: int, test_name: string) -> void:
         println("  " + c_green + "[PASS]" + c_reset + " " + test_name)
     else:
         println("  " + c_red + "[FAIL]" + c_reset + " " + test_name)
+        assert(0)
+
+fn run_pure_mock_http_server(port: int):
+    srv_fd := net_listen(port)
+    if srv_fd < 0:
+        return
+    client_fd := net_accept(srv_fd)
+    if client_fd >= 0:
+        req := net_read(client_fd, 4096)
+        crlf := chr(13) + chr(10)
+        resp := "HTTP/1.1 200 OK" + crlf + "Content-Type: text/plain" + crlf + "Content-Length: 12" + crlf + "Connection: close" + crlf + crlf + "HelloCluster"
+        net_write(client_fd, resp)
+        net_close(client_fd)
+    net_close(srv_fd)
 
 fn main():
     println("=================================================================")
@@ -77,22 +92,23 @@ fn main():
     // Phase 3: Wire Serialization
     // -------------------------------------------------------------
     println("\n--- Phase 3: HTTP/1.1 Wire Protocol Serialization ---")
-    headers: vector[HttpHeader] = []
+    let mut headers: vector[HttpHeader] = []
     headers.push(HttpHeader("Accept", "application/json"))
     headers.push(HttpHeader("X-Custom", "ClusterLang"))
 
-    req := HttpRequest("POST", u1, headers, "{\"name\":\"cluster\"}")
+    req := HttpRequest("POST", u1, headers, "{\"name\":\"cluster\"}", "session_id=abc123xyz", "")
     wire := serialize_http_request(req)
 
     assert_true(len(wire) > 0, "Serialized wire request non-empty")
     assert_true(substring(wire, 0, 24) == "POST /api/v1?user=123 HT", "Request line properly formatted")
+    assert_true(string_contains(wire, "Cookie: session_id=abc123xyz") == 1, "Cookie header injected")
 
     // -------------------------------------------------------------
     // Phase 4: HTTP Response Parsing
     // -------------------------------------------------------------
     println("\n--- Phase 4: HTTP Response Parsing & Status Extraction ---")
     crlf := chr(13) + chr(10)
-    raw_resp := "HTTP/1.1 200 OK" + crlf + "Content-Type: application/json" + crlf + "Content-Length: 15" + crlf + crlf + "{\"status\":\"ok\"}"
+    raw_resp := "HTTP/1.1 200 OK" + crlf + "Content-Type: application/json" + crlf + "Set-Cookie: user_auth=secret99; Path=/" + crlf + "Content-Length: 15" + crlf + crlf + "{\"status\":\"ok\"}"
     resp := parse_http_response(raw_resp)
 
     assert_true(resp.status_code == 200, "Response status code 200")
@@ -109,20 +125,59 @@ fn main():
     assert_true(decoded == "Wikipedia", "Chunked transfer decoded to 'Wikipedia'")
 
     // -------------------------------------------------------------
-    // Phase 6: Live Native Socket HTTP Communication
+    // Phase 6: Live Native Pure-Cluster TCP Socket Communication (ZERO PYTHON)
     // -------------------------------------------------------------
-    println("\n--- Phase 6: Live Local TCP Socket Communication ---")
-    py_srv := "python3 -c 'import http.server, socketserver, threading; s = socketserver.TCPServer((\"127.0.0.1\", 9991), http.server.SimpleHTTPRequestHandler); s.handle_request()' &"
-    system(py_srv)
+    println("\n--- Phase 6: Live Native Socket HTTP Communication (Pure Cluster) ---")
+    spawn run_pure_mock_http_server(9995)
 
-    local_url := parse_url("http://127.0.0.1:9991/")
-    local_headers: vector[HttpHeader] = []
-    local_req := HttpRequest("GET", local_url, local_headers, "")
-    opts := TransferOptions(0, 0, 0, 0, 5, "", 1, "")
+    local_url := parse_url("http://127.0.0.1:9995/")
+    let mut local_headers: vector[HttpHeader] = []
+    local_req := HttpRequest("GET", local_url, local_headers, "", "", "")
+    opts := transfer_options_default()
 
     local_res := execute_transfer(local_req, opts, 0)
-    assert_true(local_res.status_code == 200 or local_res.status_code == 404, "Live local HTTP server responded with status code")
+    assert_true(local_res.status_code == 200, "Pure Cluster local server responded with status 200")
+    assert_true(local_res.body == "HelloCluster", "Response body received accurately")
+
+    // -------------------------------------------------------------
+    // Phase 7: Cookie Management & Jar Extraction
+    // -------------------------------------------------------------
+    println("\n--- Phase 7: Cookie Management & Jar Serialization ---")
+    cookies := get_response_cookies(resp)
+    assert_true(len(cookies) == 1, "Extracted 1 cookie")
+    assert_true(string_contains(cookies[0], "user_auth=secret99") == 1, "Cookie value matched")
+    jar_file := "/tmp/curl_test_cookies.txt"
+    saved := save_cookies_to_jar(resp, jar_file)
+    assert_true(saved == 1, "Cookies saved to jar")
+    assert_true(file_exists(jar_file) == 1, "Cookie jar file created")
+    system("rm -f " + jar_file)
+
+    // -------------------------------------------------------------
+    // Phase 8: Bearer Authentication
+    // -------------------------------------------------------------
+    println("\n--- Phase 8: Bearer Authentication Header ---")
+    req_bearer := HttpRequest("GET", u1, local_headers, "", "", "jwt_token_sample_12345")
+    wire_bearer := serialize_http_request(req_bearer)
+    assert_true(string_contains(wire_bearer, "Authorization: Bearer jwt_token_sample_12345") == 1, "Bearer token formatted")
+
+    // -------------------------------------------------------------
+    // Phase 9: Custom Write-Out Interpolation
+    // -------------------------------------------------------------
+    println("\n--- Phase 9: Custom Write-Out Interpolation ---")
+    wo_fmt := "Status: %" + chr(123) + "http_code" + chr(125) + ", Size: %" + chr(123) + "size_download" + chr(125)
+    wo := format_write_out(wo_fmt, resp)
+    assert_true(string_contains(wo, "Status: 200") == 1, "http_code interpolated")
+    assert_true(string_contains(wo, "Size: 15") == 1, "size_download interpolated")
+
+    // -------------------------------------------------------------
+    // Phase 10: Automatic Redirect Evaluation
+    // -------------------------------------------------------------
+    println("\n--- Phase 10: Redirect Detection ---")
+    redirect_raw := "HTTP/1.1 302 Found" + crlf + "Location: /new-target" + crlf + crlf
+    red_resp := parse_http_response(redirect_raw)
+    assert_true(red_resp.status_code == 302, "Redirect status 302")
+    assert_true(get_response_header(red_resp, "location") == "/new-target", "Location header extracted")
 
     println("\n=================================================================")
-    println(" ALL 6 PHASES OF CLUSTER-CURL VERIFIED WITH 100% SUCCESS")
+    println(" ALL 10 PHASES OF CLUSTER-CURL VERIFIED WITH 100% SUCCESS")
     println("=================================================================")

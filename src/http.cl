@@ -3,7 +3,8 @@
 // Project:     Cluster cURL (HTTP/HTTPS Transfer Client)
 // Author:      zk-mohammad <ZaidKhan-alamgir@proton.me>
 // License:     Cluster Community & Fair-Source License (CCFL v2.0)
-// Description: RFC 7230 HTTP/1.1 wire protocol serializer & RFC 4648 Base64 auth.
+// Description: RFC 7230 HTTP/1.1 wire protocol serializer, RFC 4648 Base64 auth,
+//              cookie injection, and bearer token header synthesis.
 // ==============================================================================
 
 model HttpHeader:
@@ -15,13 +16,13 @@ model HttpRequest:
     url: ParsedUrl
     headers: vector[HttpHeader]
     body: string
+    cookie_data: string
+    bearer_token: string
 
 // ------------------------------------------------------------------------------
 // Function: base64_encode
 // Syntax:   fn base64_encode(s: string) -> string
 // Purpose:  Encodes raw string data into standard RFC 4648 Base64 format with '=' padding.
-// Params:   s - Input text or binary string
-// Returns:  Base64 encoded string
 // ------------------------------------------------------------------------------
 fn base64_encode(s: string) -> string:
     chars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -65,8 +66,6 @@ fn base64_encode(s: string) -> string:
 // Function: serialize_http_request
 // Syntax:   fn serialize_http_request(req: HttpRequest) -> string
 // Purpose:  Serializes an HttpRequest into RFC 7230 compliant HTTP/1.1 wire bytes.
-// Params:   req - Structured HttpRequest model
-// Returns:  Raw HTTP request wire string with CRLF line terminators
 // ------------------------------------------------------------------------------
 fn serialize_http_request(req: HttpRequest) -> string:
     c_crlf := chr(13) + chr(10)
@@ -83,6 +82,8 @@ fn serialize_http_request(req: HttpRequest) -> string:
     has_conn := 0
     has_ct := 0
     has_cl := 0
+    has_auth := 0
+    has_cookie := 0
 
     i := 0
     hlen := len(req.headers)
@@ -104,6 +105,8 @@ fn serialize_http_request(req: HttpRequest) -> string:
         if k_lower == "connection": has_conn = 1
         if k_lower == "content-type": has_ct = 1
         if k_lower == "content-length": has_cl = 1
+        if k_lower == "authorization": has_auth = 1
+        if k_lower == "cookie": has_cookie = 1
 
         out = out + h.key + ": " + h.val + c_crlf
         i = i + 1
@@ -111,9 +114,9 @@ fn serialize_http_request(req: HttpRequest) -> string:
     if has_host == 0:
         host_header := req.url.host
         if req.url.scheme == "http" and req.url.port != 80:
-            host_header = host_header + ":" + req.url.port
+            host_header = host_header + ":" + str(req.url.port)
         elif req.url.scheme == "https" and req.url.port != 443:
-            host_header = host_header + ":" + req.url.port
+            host_header = host_header + ":" + str(req.url.port)
         out = out + "Host: " + host_header + c_crlf
 
     if has_ua == 0:
@@ -125,13 +128,19 @@ fn serialize_http_request(req: HttpRequest) -> string:
     if has_conn == 0:
         out = out + "Connection: close" + c_crlf
 
-    if len(req.url.userinfo) > 0:
-        auth_b64 := base64_encode(req.url.userinfo)
-        out = out + "Authorization: Basic " + auth_b64 + c_crlf
+    if has_auth == 0:
+        if len(req.bearer_token) > 0:
+            out = out + "Authorization: Bearer " + req.bearer_token + c_crlf
+        elif len(req.url.userinfo) > 0:
+            auth_b64 := base64_encode(req.url.userinfo)
+            out = out + "Authorization: Basic " + auth_b64 + c_crlf
+
+    if has_cookie == 0 and len(req.cookie_data) > 0:
+        out = out + "Cookie: " + req.cookie_data + c_crlf
 
     if len(req.body) > 0:
         if has_cl == 0:
-            out = out + "Content-Length: " + len(req.body) + c_crlf
+            out = out + "Content-Length: " + str(len(req.body)) + c_crlf
         if has_ct == 0:
             out = out + "Content-Type: application/x-www-form-urlencoded" + c_crlf
 
